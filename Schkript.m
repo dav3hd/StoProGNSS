@@ -67,9 +67,11 @@ l = L - L0;
 % Ausgleichung
 % ------------
 
-[N,Qxx,xdach,v,W,var0,Sigma_xx] = ausgleichung(A,l);
+Xdach = A\u;
 
 % Ausgeglichene Beobachtungen
+xdach = (A'*A)\A'*l;
+v = A*xdach - l;
 Ldach = L + v;
 
 % Hauptrechenprobe
@@ -100,6 +102,7 @@ plot(t,u,'b.-')
 plot(t,Li,'r-',LineWidth=3)
 hold off
 
+
 %% Aufgabe 4: Darstellen der Zeitreihe der Residuen
 
 e = v; % Berechnen der Residuen (Verbesserungen aus Ausgleichung)
@@ -112,7 +115,7 @@ title('Diagramm der Residuen');
 
 %% Aufgabe 5: Schätzen der Energiedichte P(f)
 
-clearvars -except e u t I dt T fg Xdach
+clearvars -except e u t I dt T fg Xdach A Li
 
 E = fft(e);
 E = E.*conj(E)/I;
@@ -134,7 +137,6 @@ title('Diagramm der Energiedichte');
 
 %% Aufgabe 6 - Bestimmung Spektralindex
 
-P0 = P(1);
 P_t = log( P(2:end) );
 f_t = log( f );
 
@@ -170,6 +172,48 @@ imagesc(CPL)
 
 %% Aufgabe 8 - Wiederholung Parameterschätzung
 
+C_PL = CPL;
+s0 = std(u-A*Xdach);
+C = eye(I)*s0^2 + C_PL;
+iC = C \ eye(length(C));
+x_cov = (A' * iC * A) \ A' * iC * u;
+x_cov = [x_cov(1:2); x_cov(3:4); x_cov(5:6)];
+
+%*365.25/(2*pi)
+
+disp('Die Werte der geschätzten Parameter und ihre Genauigkeiten sowie die Standardabweichung der Gewichtseinheit sind:')
+disp(x_cov)
+
+C_x = (A'* iC *A) \ eye(width(A));
+C_x = C_x./(C_x(1,1)*C_x(2,2)*C_x(3,3)*C_x(4,4)*C_x(5,5)*C_x(6,6))^(1/6);
+
+figure
+imagesc(C_x)
+title('Korrelationsmatrix der geschätzten Parameter')
+xlabel('Zeilenindex')
+ylabel('Spaltenindex')
+colorbar
+
+u_fit = A*x_cov;
+
+figure
+plot(t,u)
+hold on
+plot(t,u_fit,'r-')
+title('Zeitreihe u(t) und Trajektorie des geschätzten Modells')
+xlabel('Zeit, t (d)')
+ylabel('Höhe, u(t) (mm)')
+legend('u(t)','Modell')
 
 
+disp('Vergleich der Parameter unter 3. und 8.:')
+disp('Parameter 3. 8.')
+disp([Xdach x_cov])
+
+figure
+hold on
+grid on
+plot(t,u_fit-Li,'r-')
+title("Differenz zwischen Zeitreihe aus Aufgabe 3 und Aufgabe 8")
+hold off
 
